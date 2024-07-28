@@ -5,7 +5,6 @@ const path = require('path');
 const axios = require('axios');
 
 const PORT = process.env.PORT || 80;
-
 const app = express();
 
 async function generateImage(text) {
