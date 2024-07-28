@@ -1,66 +1,50 @@
-const express = require("express");
-const xml2js = require('xml2js');
+const express = require('express')
+const request = require('request')
 
-const app = express();
-app.use(express.text({ type: 'text/xml' }));
+const app = express()
 
-// 解析XML的辅助函数
-function parseXML(xml) {
-  return new Promise((resolve, reject) => {
-    xml2js.parseString(xml, { explicitArray: false }, (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result.xml);
-      }
-    });
-  });
-}
+app.use(express.json())
 
-// 微信消息处理
-app.post('/', async (req, res) => {
-  try {
-    const message = await parseXML(req.body);
-    
-    if (message.MsgType === 'text') {
-      let replyContent = '收到你的消息了';
-      
-      if (message.Content === '你好') {
-        replyContent = '欢迎来到大字报';
-      }
-      
-      const replyMessage = `
-        <xml>
-          <ToUserName><![CDATA[${message.FromUserName}]]></ToUserName>
-          <FromUserName><![CDATA[${message.ToUserName}]]></FromUserName>
-          <CreateTime>${Math.floor(Date.now() / 1000)}</CreateTime>
-          <MsgType><![CDATA[text]]></MsgType>
-          <Content><![CDATA[${replyContent}]]></Content>
-        </xml>
-      `;
-      res.type('application/xml');
-      res.send(replyMessage);
-    } else {
-      const replyMessage = `
-        <xml>
-          <ToUserName><![CDATA[${message.FromUserName}]]></ToUserName>
-          <FromUserName><![CDATA[${message.ToUserName}]]></FromUserName>
-          <CreateTime>${Math.floor(Date.now() / 1000)}</CreateTime>
-          <MsgType><![CDATA[text]]></MsgType>
-          <Content><![CDATA[仅支持文本消息]]></Content>
-        </xml>
-      `;
-      res.type('application/xml');
-      res.send(replyMessage);
+app.all('/', async (req, res) => {
+  console.log('消息推送', req.body)
+  // 从header中取appid，如果from-appid不存在，则不是资源复用场景，可以直接传空字符串，使用环境所属账号发起云调用
+  const appid = req.headers['x-wx-from-appid'] || ''
+  const { ToUserName, FromUserName, MsgType, Content, CreateTime } = req.body
+  console.log('推送接收的账号', ToUserName, '创建时间', CreateTime)
+  if (MsgType === 'text') {
+    if (Content === '回复文字') { // 小程序、公众号可用
+      await sendmess(appid, {
+        touser: FromUserName,
+        msgtype: 'text',
+        text: {
+          content: '这是回复的消息'
+        }
+      })
     }
-  } catch (error) {
-    console.error('Error processing message:', error);
-    res.status(500).send('Internal Server Error');
+    res.send('success')
+  } else {
+    res.send('success')
   }
-});
+})
 
-const port = process.env.PORT || 80;
+app.listen(80, function () {
+  console.log('服务启动成功！')
+})
 
-app.listen(port, () => {
-  console.log("启动成功", port);
-});
+function sendmess (appid, mess) {
+  return new Promise((resolve, reject) => {
+    request({
+      method: 'POST',
+      url: `http://api.weixin.qq.com/cgi-bin/message/custom/send?from_appid=${appid}`,
+      body: JSON.stringify(mess)
+    }, function (error, response) {
+      if (error) {
+        console.log('接口返回错误', error)
+        reject(error.toString())
+      } else {
+        console.log('接口返回内容', response.body)
+        resolve(response.body)
+      }
+    })
+  })
+}
