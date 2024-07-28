@@ -1,6 +1,5 @@
 const express = require('express');
 const { createCanvas, registerFont } = require('canvas');
-const sharp = require('sharp');
 const path = require('path');
 const axios = require('axios');
 
@@ -45,7 +44,7 @@ async function generateImage(text) {
     ctx.fillText(line, width / 2, startY + index * lineHeight);
   });
 
-  return await sharp(canvas.toBuffer()).toBuffer();
+  return canvas.toBuffer().toBuffer();
 }
 
 async function uploadImageToWechat(imageBuffer) {
