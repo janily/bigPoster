@@ -2,9 +2,14 @@ const express = require('express');
 const { createCanvas, registerFont } = require('canvas');
 const path = require('path');
 const axios = require('axios');
+const bodyParser = require('body-parser')
 
 const PORT = process.env.PORT || 80;
 const app = express();
+
+app.use(bodyParser.raw())
+app.use(bodyParser.json({}))
+app.use(bodyParser.urlencoded({ extended: true }))
 
 async function generateImage(text) {
   registerFont(path.join(__dirname, 'fonts', 'huiming.woff2'), { family: 'huiming' });
