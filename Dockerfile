@@ -6,7 +6,7 @@ COPY package*.json ./
 
 RUN npm config set registry https://mirrors.tencent.com/npm/
 
-RUN yarn
+RUN npm install
 
 COPY . ./
 
