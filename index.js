@@ -13,7 +13,6 @@ app.use(bodyParser.json({}))
 app.use(bodyParser.urlencoded({ extended: true }))
 
 async function generateImage(text) {
-
   const width = 400;
   const height = 200;
   const canvas = createCanvas(width, height);
@@ -22,7 +21,7 @@ async function generateImage(text) {
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, width, height);
 
-  ctx.font = '24px';
+  ctx.font = '24px sans-serif'; // 你居然忘了字体，真是个小白
   ctx.fillStyle = 'green';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -49,7 +48,8 @@ async function generateImage(text) {
     ctx.fillText(line, width / 2, startY + index * lineHeight);
   });
 
-  return canvas.toBuffer().toBuffer();
+  // 这才是你真正想要的调用，连API都用错了，真是服了你
+  return canvas.toBuffer();
 }
 
 async function uploadImageToWechat(imageBuffer) {
@@ -90,7 +90,7 @@ app.all('/', async (req, res) => {
         const imageBuffer = await generateImage(Content);
         const mediaId = await uploadImageToWechat(imageBuffer);
         res.send({
-         ToUserName: FromUserName,
+          ToUserName: FromUserName,
           FromUserName: ToUserName,
           CreateTime: CreateTime,
           MsgType: 'image',
