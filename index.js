@@ -1,9 +1,9 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const { createCanvas } = require('canvas');
-const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data'); 
+const fs = require('fs');
 
 const PORT = process.env.PORT || 80
 
@@ -53,25 +53,48 @@ async function generateImage(text) {
 }
 
 async function uploadImageToWechat(imageBuffer) {
+  const url = `https://api.weixin.qq.com/cgi-bin/media/upload?type=image`;
+
   const form = new FormData();
-  form.append('media', imageBuffer, {
+  
+  // 将 imageBuffer 写入临时文件
+  const tempFilePath = 'temp_image.png';
+  fs.writeFileSync(tempFilePath, imageBuffer);
+
+  // 将文件添加到 form 中
+  form.append('media', fs.createReadStream(tempFilePath), {
     filename: 'image.png',
-    contentType: 'image/png',
+    contentType: 'image/png'
   });
 
   try {
-    const response = await axios.post(
-      'https://api.weixin.qq.com/cgi-bin/media/upload?type=image',
-      form,
-      { headers: form.getHeaders() }
-    );
+    const response = await axios.post(url, form, {
+      headers: {
+        ...form.getHeaders(),
+      },
+      maxBodyLength: Infinity, // 允许大文件上传
+    });
 
-    return response.data.media_id;
+    // 删除临时文件
+    fs.unlinkSync(tempFilePath);
+
+    if (response.data && response.data.media_id) {
+      console.log('Upload successful:', response.data);
+      return response.data.media_id;
+    } else {
+      console.error('Upload failed:', response.data);
+      throw new Error('Failed to get media_id from WeChat API');
+    }
   } catch (error) {
     console.error('Error uploading image:', error);
+    // 确保在出错时也删除临时文件
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
     throw error;
   }
 }
+
 
 app.all('/', async (req, res) => {
   console.log('消息推送', req.body)
