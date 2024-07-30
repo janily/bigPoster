@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const { createCanvas } = require('canvas');
 const path = require('path');
 const axios = require('axios');
+const FormData = require('form-data'); 
 
 const PORT = process.env.PORT || 80
 
