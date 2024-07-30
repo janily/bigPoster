@@ -48,8 +48,7 @@ async function generateImage(text) {
     ctx.fillText(line, width / 2, startY + index * lineHeight);
   });
 
-  // 这才是你真正想要的调用，连API都用错了，真是服了你
-  return canvas.toBuffer();
+  return canvas.toBuffer('image/png');
 }
 
 async function uploadImageToWechat(imageBuffer) {
