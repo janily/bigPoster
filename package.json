@@ -10,7 +10,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "axios": "^1.7.2",
-    "body-parser": "^1.20.2",
     "canvas": "^2.11.2",
     "express": "^4.16.4",
     "form-data": "^4.0.0"
