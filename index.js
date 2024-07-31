@@ -1,6 +1,5 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { createCanvas } = require('canvas');
 const axios = require('axios');
 const FormData = require('form-data'); 
 
