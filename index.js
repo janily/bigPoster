@@ -56,42 +56,24 @@ async function uploadImageToWechat(imageBuffer) {
   const url = `https://api.weixin.qq.com/cgi-bin/media/upload?type=image`;
 
   const form = new FormData();
-  
-  // 将 imageBuffer 写入临时文件
-  const tempFilePath = 'temp_image.png';
-  fs.writeFileSync(tempFilePath, imageBuffer);
 
   // 将文件添加到 form 中
-  form.append('media', fs.createReadStream(tempFilePath), {
+  form.append('media', imageBuffer, {
     filename: 'image.png',
     contentType: 'image/png'
   });
 
-  try {
-    const response = await axios.post(url, form, {
-      headers: {
-        ...form.getHeaders(),
-      },
-      maxBodyLength: Infinity, // 允许大文件上传
+   try {
+    const response = await axios({
+      method: 'POST',
+      url: url,
+      data: form.getBuffer(),
+      headers: form.getHeaders()
     });
-
-    // 删除临时文件
-    fs.unlinkSync(tempFilePath);
-
-    if (response.data && response.data.media_id) {
-      console.log('Upload successful:', response.data);
-      return response.data.media_id;
-    } else {
-      console.error('Upload failed:', response.data);
-      throw new Error('Failed to get media_id from WeChat API');
-    }
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    // 确保在出错时也删除临时文件
-    if (fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
-    }
-    throw error;
+    return response.data;
+  } catch (err) {
+    console.log(err);
+    return null;
   }
 }
 
