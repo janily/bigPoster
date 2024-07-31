@@ -2,7 +2,8 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const axios = require('axios');
 const FormData = require('form-data'); 
-
+const sharp = require('sharp');
+const TextToSVG = require('text-to-svg');
 const PORT = process.env.PORT || 80
 
 const app = express()
@@ -14,25 +15,23 @@ app.use(bodyParser.urlencoded({ extended: true }))
 async function generateImage(text) {
   const width = 400;
   const height = 200;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  const fontSize = 24;
+  const maxWidth = width - 40;
 
-  ctx.fillStyle = 'white';
-  ctx.fillRect(0, 0, width, height);
+  const textToSVG = TextToSVG.loadSync('fonts.woff2');
+  const attributes = { fill: 'green', 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
 
-  ctx.font = '24px sans-serif'; // 你居然忘了字体，真是个小白
-  ctx.fillStyle = 'green';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
+  // 将文字分成多行
   const words = text.split('');
   let line = '';
   const lines = [];
-  const maxWidth = width - 40;
   for (let i = 0; i < words.length; i++) {
     const testLine = line + words[i];
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && i > 0) {
+    const testSVG = textToSVG.getSVG(testLine, attributes);
+    const testBuffer = Buffer.from(testSVG);
+    const { width: testWidth } = await sharp(testBuffer).metadata();
+
+    if (testWidth > maxWidth && i > 0) {
       lines.push(line);
       line = words[i];
     } else {
@@ -43,11 +42,34 @@ async function generateImage(text) {
 
   const lineHeight = 30;
   const startY = (height - lineHeight * lines.length) / 2;
-  lines.forEach((line, index) => {
-    ctx.fillText(line, width / 2, startY + index * lineHeight);
+
+  const svgLines = lines.map((line, index) => {
+    const y = startY + index * lineHeight + fontSize / 2;
+    return textToSVG.getSVG(line, { ...attributes, y });
   });
 
-  return canvas.toBuffer('image/png');
+  const svgText = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="white" />
+      ${svgLines.join('')}
+    </svg>
+  `;
+
+  const svgBuffer = Buffer.from(svgText);
+
+  const image = await sharp({
+    create: {
+      width: width,
+      height: height,
+      channels: 4,
+      background: 'white'
+    }
+    })
+    .composite([{ input: svgBuffer, top: 0, left: 0 }])
+    .png()
+    .toBuffer();
+
+  return image;
 }
 
 async function uploadImageToWechat(imageBuffer) {
