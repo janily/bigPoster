@@ -18,7 +18,7 @@ async function generateImage(text) {
   const fontSize = 24;
   const maxWidth = width - 40;
 
-  const textToSVG = TextToSVG.loadSync('fonts.woff2');
+  const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff2');
   const attributes = { fill: 'green', 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
 
   // 将文字分成多行
