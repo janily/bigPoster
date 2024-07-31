@@ -63,16 +63,14 @@ async function uploadImageToWechat(imageBuffer) {
     contentType: 'image/png'
   });
 
-   try {
-    const response = await axios({
-      method: 'POST',
-      url: url,
-      data: form.getBuffer(),
+
+  try {
+    const response = await axios.post(url, form, {
       headers: form.getHeaders()
     });
-    return response.data;
+    return response.data.media_id;  // 返回 media_id
   } catch (err) {
-    console.log(err);
+    console.error('Error uploading image to WeChat:', err);
     return null;
   }
 }
