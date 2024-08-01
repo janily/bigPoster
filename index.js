@@ -86,6 +86,7 @@ async function uploadImageToWechat(imageBuffer) {
 
   try {
     const response = await axios.post(url, form, {
+      data: form.getBuffer(),
       headers: form.getHeaders()
     });
     return response.data.media_id;  // 返回 media_id
