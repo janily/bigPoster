@@ -73,7 +73,7 @@ async function generateImage(text) {
 }
 
 async function uploadImageToWechat(imageBuffer) {
-  const url = `https://api.weixin.qq.com/cgi-bin/media/upload?type=image`;
+  const url = `http://api.weixin.qq.com/cgi-bin/media/upload?type=image`;
 
   const form = new FormData();
 
