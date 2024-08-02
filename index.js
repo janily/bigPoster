@@ -15,46 +15,55 @@ app.use(bodyParser.urlencoded({ extended: true }))
 async function generateImage(text) {
   const width = 800;
   const height = 800;
-  const fontSize = 48;
-  const textColor = 'rgb(29,119,56)';
+  const fontSize = 72;
+  const textColor = 'rgb(29,119,56)'; // 红色
+
   const textToSVG = TextToSVG.loadSync('fonts/huiwen.ttf');
 
   if (!textToSVG) {
     console.error('TextToSVG加载失败');
-    return;
+    return null;
   }
 
-  // 使用 textToSVG 生成 SVG
-  const attributes = { 
-    fill: textColor, 
-    'font-size': fontSize, 
-    'text-anchor': 'middle', 
-    'dominant-baseline': 'central' 
+  console.log('TextToSVG加载成功');
+
+  const options = {
+    x: 0,
+    y: 0,
+    fontSize: fontSize,
+    anchor: 'top',
+    attributes: { fill: textColor }
   };
-  const options = { 
-    x: width / 2, 
-    y: height / 2, 
-    fontSize: fontSize, 
-    anchor: 'center middle' 
-  };
-  const svgText = textToSVG.getSVG(text, options, attributes);
 
-  console.log('生成的SVG内容:', svgText); // 调试输出
+  const svgText = textToSVG.getSVG(text, options);
 
-  const svgBuffer = Buffer.from(svgText);
-  const image = await sharp({
-    create: {
-      width: width,
-      height: height,
-      channels: 4,
-      background: 'white'
-    }
-  })
-    .composite([{ input: svgBuffer, top: 0, left: 0 }])
-    .png()
-    .toBuffer();
+  console.log('生成的SVG文本内容:', svgText);
 
-  return image;
+  const fullSvg = `
+  <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="white"/>
+    <g transform="translate(${width / 2}, ${height / 2})">${svgText}</g>
+  </svg>
+`;
+
+  console.log('完整的SVG内容:', fullSvg);
+
+  try {
+    console.log('开始Sharp处理');
+    const image = await sharp(Buffer.from(fullSvg))
+      .png()
+      .toBuffer();
+    console.log('Sharp处理完成，生成的图片大小:', image.length, '字节');
+
+    // 添加图片信息输出
+    const metadata = await sharp(image).metadata();
+    console.log('图片元数据:', metadata);
+
+    return image;
+  } catch (error) {
+    console.error('Sharp处理SVG时出错:', error);
+    return null;
+  }
 }
 
 async function uploadImageToWechat(imageBuffer) {
