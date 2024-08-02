@@ -16,7 +16,6 @@ async function generateImage(text) {
   const width = 800;
   const height = 800;
   const fontSize = 48;
-  const maxWidth = width - 80;
   const textColor = 'rgb(29,119,56)';
   const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff');
   const attributes = { fill: textColor, 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
@@ -26,47 +25,22 @@ async function generateImage(text) {
     return;
   }
 
-  // 使用Unicode编码处理中文字符
-  const words = [...text];
-  let line = '';
-  const lines = [];
-
-  for (let i = 0; i < words.length; i++) {
-    const testLine = line + words[i];
-    const metrics = textToSVG.getMetrics(testLine, attributes);
-    
-    if (metrics.width > maxWidth && line) {
-      lines.push(line);
-      line = words[i];
-    } else {
-      line = testLine;
+  // 编码特殊字符
+  const encodedText = text.replace(/[<>&'"]/g, char => {
+    switch (char) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case "'": return '&apos;';
+      case '"': return '&quot;';
     }
-  }
-  lines.push(line);
-
-  const lineHeight = fontSize * 1.5;
-  const startY = (height - lineHeight * lines.length) / 2 + fontSize;
-
-  const svgLines = lines.map((line, index) => {
-    const y = startY + index * lineHeight;
-    // 使用XML实体引用来确保特殊字符被正确编码
-    const encodedLine = line.replace(/[<>&'"]/g, char => {
-      switch (char) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        case "'": return '&apos;';
-        case '"': return '&quot;';
-      }
-    });
-    return `<tspan x="${width / 2}" y="${y}">${encodedLine}</tspan>`;
   });
 
   const svgText = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect width="100%" height="100%" fill="white" />
-      <text x="${width / 2}" y="${startY}" font-size="${fontSize}" fill="${textColor}" text-anchor="middle" font-family="sans-serif">
-        ${svgLines.join('')}
+      <text x="${width / 2}" y="${height / 2}" font-size="${fontSize}" fill="${textColor}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif">
+        ${encodedText}
       </text>
     </svg>
   `;
