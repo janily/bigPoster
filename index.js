@@ -15,22 +15,28 @@ app.use(bodyParser.urlencoded({ extended: true }))
 async function generateImage(text) {
   const width = 800;
   const height = 800;
-  const fontSize = 24; // 增加字体大小以确保文字清晰可见
-  const maxWidth = width - 80; // 增加左右边距
+  const fontSize = 24;
+  const maxWidth = width - 80;
   const textColor = 'rgb(29,119,56)';
   const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff');
   const attributes = { fill: textColor, 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
 
+  if (!textToSVG) {
+    console.error('TextToSVG加载失败');
+    return;
+  }
+
   // 将文字分成多行
-  const words = text.split('');
+  const words = text.split(' ');
   let line = '';
   const lines = [];
   for (let i = 0; i < words.length; i++) {
-    const testLine = line + words[i];
+    const testLine = line + (line ? ' ' : '') + words[i];
     const testSVG = textToSVG.getSVG(testLine, attributes);
     const testBuffer = Buffer.from(testSVG);
     const { width: testWidth } = await sharp(testBuffer).metadata();
-    if (testWidth > maxWidth && i > 0) {
+
+    if (testWidth > maxWidth && line) {
       lines.push(line);
       line = words[i];
     } else {
@@ -39,21 +45,24 @@ async function generateImage(text) {
   }
   lines.push(line);
 
-  const lineHeight = fontSize * 1.5; // 增加行高
-  const startY = (height - lineHeight * lines.length) / 2;
-  
+  const lineHeight = fontSize * 1.5;
+  const startY = (height - lineHeight * lines.length) / 2 + fontSize;
+
   const svgLines = lines.map((line, index) => {
-    const y = startY + index * lineHeight + fontSize / 2;
-    const x = width / 2; // 设置 x 坐标为画布宽度的一半，实现水平居中
-    return textToSVG.getSVG(line, { ...attributes, x, y });
+    const y = startY + index * lineHeight;
+    return `<tspan x="${width / 2}" y="${y}">${line}</tspan>`;
   });
 
   const svgText = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect width="100%" height="100%" fill="white" />
-      ${svgLines.join('')}
+      <text x="${width / 2}" y="${startY}" font-size="${fontSize}" fill="${textColor}" text-anchor="middle" font-family="sans-serif">
+        ${svgLines.join('')}
+      </text>
     </svg>
   `;
+
+  console.log('生成的SVG内容:', svgText); // 调试输出
 
   const svgBuffer = Buffer.from(svgText);
   const image = await sharp({
