@@ -26,17 +26,16 @@ async function generateImage(text) {
     return;
   }
 
-  // 将文字分成多行
-  const words = text.split('');
+  // 使用Unicode编码处理中文字符
+  const words = [...text];
   let line = '';
   const lines = [];
+
   for (let i = 0; i < words.length; i++) {
     const testLine = line + words[i];
-    const testSVG = textToSVG.getSVG(testLine, attributes);
-    const testBuffer = Buffer.from(testSVG);
-    const { width: testWidth } = await sharp(testBuffer).metadata();
-
-    if (testWidth > maxWidth && line) {
+    const metrics = textToSVG.getMetrics(testLine, attributes);
+    
+    if (metrics.width > maxWidth && line) {
       lines.push(line);
       line = words[i];
     } else {
@@ -50,7 +49,17 @@ async function generateImage(text) {
 
   const svgLines = lines.map((line, index) => {
     const y = startY + index * lineHeight;
-    return `<tspan x="${width / 2}" y="${y}">${line}</tspan>`;
+    // 使用XML实体引用来确保特殊字符被正确编码
+    const encodedLine = line.replace(/[<>&'"]/g, char => {
+      switch (char) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case "'": return '&apos;';
+        case '"': return '&quot;';
+      }
+    });
+    return `<tspan x="${width / 2}" y="${y}">${encodedLine}</tspan>`;
   });
 
   const svgText = `
