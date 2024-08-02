@@ -15,7 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 async function generateImage(text) {
   const width = 800;
   const height = 800;
-  const fontSize = 24;
+  const fontSize = 48;
   const maxWidth = width - 80;
   const textColor = 'rgb(29,119,56)';
   const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff');
@@ -27,11 +27,11 @@ async function generateImage(text) {
   }
 
   // 将文字分成多行
-  const words = text.split(' ');
+  const words = text.split('');
   let line = '';
   const lines = [];
   for (let i = 0; i < words.length; i++) {
-    const testLine = line + (line ? ' ' : '') + words[i];
+    const testLine = line + words[i];
     const testSVG = textToSVG.getSVG(testLine, attributes);
     const testBuffer = Buffer.from(testSVG);
     const { width: testWidth } = await sharp(testBuffer).metadata();
