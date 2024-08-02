@@ -18,7 +18,6 @@ async function generateImage(text) {
   const fontSize = 48;
   const textColor = 'rgb(29,119,56)';
   const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff');
-  const attributes = { fill: textColor, 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
 
   if (!textToSVG) {
     console.error('TextToSVG加载失败');
