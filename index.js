@@ -13,13 +13,13 @@ app.use(bodyParser.json({}))
 app.use(bodyParser.urlencoded({ extended: true }))
 
 async function generateImage(text) {
-  const width = 400;
-  const height = 200;
-  const fontSize = 24;
-  const maxWidth = width - 40;
-
+  const width = 800;
+  const height = 800;
+  const fontSize = 24; // 增加字体大小以确保文字清晰可见
+  const maxWidth = width - 80; // 增加左右边距
+  const textColor = 'rgb(29,119,56)';
   const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff');
-  const attributes = { fill: 'green', 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
+  const attributes = { fill: textColor, 'font-family': 'sans-serif', 'font-size': fontSize, 'text-anchor': 'middle' };
 
   // 将文字分成多行
   const words = text.split('');
@@ -30,7 +30,6 @@ async function generateImage(text) {
     const testSVG = textToSVG.getSVG(testLine, attributes);
     const testBuffer = Buffer.from(testSVG);
     const { width: testWidth } = await sharp(testBuffer).metadata();
-
     if (testWidth > maxWidth && i > 0) {
       lines.push(line);
       line = words[i];
@@ -40,12 +39,13 @@ async function generateImage(text) {
   }
   lines.push(line);
 
-  const lineHeight = 30;
+  const lineHeight = fontSize * 1.5; // 增加行高
   const startY = (height - lineHeight * lines.length) / 2;
-
+  
   const svgLines = lines.map((line, index) => {
     const y = startY + index * lineHeight + fontSize / 2;
-    return textToSVG.getSVG(line, { ...attributes, y });
+    const x = width / 2; // 设置 x 坐标为画布宽度的一半，实现水平居中
+    return textToSVG.getSVG(line, { ...attributes, x, y });
   });
 
   const svgText = `
@@ -56,7 +56,6 @@ async function generateImage(text) {
   `;
 
   const svgBuffer = Buffer.from(svgText);
-
   const image = await sharp({
     create: {
       width: width,
@@ -64,7 +63,7 @@ async function generateImage(text) {
       channels: 4,
       background: 'white'
     }
-    })
+  })
     .composite([{ input: svgBuffer, top: 0, left: 0 }])
     .png()
     .toBuffer();
