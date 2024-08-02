@@ -17,32 +17,27 @@ async function generateImage(text) {
   const height = 800;
   const fontSize = 48;
   const textColor = 'rgb(29,119,56)';
-  const textToSVG = TextToSVG.loadSync('./fonts/huiwen.woff');
+  const textToSVG = TextToSVG.loadSync('fonts/huiwen.ttf');
 
   if (!textToSVG) {
     console.error('TextToSVG加载失败');
     return;
   }
 
-  // 编码特殊字符
-  const encodedText = text.replace(/[<>&'"]/g, char => {
-    switch (char) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case "'": return '&apos;';
-      case '"': return '&quot;';
-    }
-  });
-
-  const svgText = `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="white" />
-      <text x="${width / 2}" y="${height / 2}" font-size="${fontSize}" fill="${textColor}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif">
-        ${encodedText}
-      </text>
-    </svg>
-  `;
+  // 使用 textToSVG 生成 SVG
+  const attributes = { 
+    fill: textColor, 
+    'font-size': fontSize, 
+    'text-anchor': 'middle', 
+    'dominant-baseline': 'central' 
+  };
+  const options = { 
+    x: width / 2, 
+    y: height / 2, 
+    fontSize: fontSize, 
+    anchor: 'center middle' 
+  };
+  const svgText = textToSVG.getSVG(text, options, attributes);
 
   console.log('生成的SVG内容:', svgText); // 调试输出
 
