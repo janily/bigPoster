@@ -15,50 +15,77 @@ app.use(bodyParser.urlencoded({ extended: true }))
 async function generateImage(text) {
   const width = 800;
   const height = 800;
-  const fontSize = 72;
-  const textColor = 'rgb(29,119,56)'; // 红色
-
+  const fontSize = 60;
+  const lineHeight = fontSize * 1.2;
+  const textColor = 'rgb(29,119,56)'; // Green color
+  const backgroundColor = 'white';
   const textToSVG = TextToSVG.loadSync('fonts/huiwen.ttf');
-
   if (!textToSVG) {
     console.error('TextToSVG加载失败');
     return null;
   }
-
   console.log('TextToSVG加载成功');
 
-  const options = {
-    x: 0,
-    y: 0,
-    fontSize: fontSize,
-    anchor: 'top',
-    attributes: { fill: textColor }
-  };
+  function wrapText(text, maxWidth) {
+    const words = text.split('');
+    let lines = [];
+    let currentLine = '';
 
-  const svgText = textToSVG.getSVG(text, options);
+    words.forEach(char => {
+      const testLine = currentLine + char;
+      const metrics = textToSVG.getMetrics(testLine, { fontSize });
+      if (metrics.width > maxWidth && currentLine !== '') {
+        lines.push(currentLine);
+        currentLine = char;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    lines.push(currentLine);
+    return lines;
+  }
 
-  console.log('生成的SVG文本内容:', svgText);
+  const maxWidth = width * 0.8; // 使用80%的宽度作为文本区域
+  const wrappedText = wrapText(text, maxWidth);
+
+  let svgPaths = '';
+  let yOffset = -(wrappedText.length - 1) * lineHeight / 2; // 居中整个文本块
+
+  wrappedText.forEach((line, index) => {
+    const options = {
+      x: 0,
+      y: yOffset + index * lineHeight,
+      fontSize: fontSize,
+      anchor: 'center middle',
+      attributes: { fill: textColor }
+    };
+    const linePath = textToSVG.getD(line, options);
+    svgPaths += `<path d="${linePath}" />`;
+  });
 
   const fullSvg = `
-  <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100%" height="100%" fill="white"/>
-    <g transform="translate(${width / 2}, ${height / 2})">${svgText}</g>
+  <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="${backgroundColor}"/>
+    <g transform="translate(${width / 2}, ${height / 2})" fill="${textColor}">
+      ${svgPaths}
+    </g>
   </svg>
 `;
-
   console.log('完整的SVG内容:', fullSvg);
+
+  const svgPath = path.resolve(__dirname, './output/output.svg');
+  fs.writeFileSync(svgPath, fullSvg);
+  console.log('SVG文件已保存:', svgPath);
 
   try {
     console.log('开始Sharp处理');
     const image = await sharp(Buffer.from(fullSvg))
       .png()
+      .withMetadata()
       .toBuffer();
     console.log('Sharp处理完成，生成的图片大小:', image.length, '字节');
-
-    // 添加图片信息输出
     const metadata = await sharp(image).metadata();
     console.log('图片元数据:', metadata);
-
     return image;
   } catch (error) {
     console.error('Sharp处理SVG时出错:', error);
