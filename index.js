@@ -71,11 +71,6 @@ async function generateImage(text) {
     </g>
   </svg>
 `;
-  console.log('完整的SVG内容:', fullSvg);
-
-  const svgPath = path.resolve(__dirname, './output/output.svg');
-  fs.writeFileSync(svgPath, fullSvg);
-  console.log('SVG文件已保存:', svgPath);
 
   try {
     console.log('开始Sharp处理');
@@ -83,7 +78,6 @@ async function generateImage(text) {
       .png()
       .withMetadata()
       .toBuffer();
-    console.log('Sharp处理完成，生成的图片大小:', image.length, '字节');
     const metadata = await sharp(image).metadata();
     console.log('图片元数据:', metadata);
     return image;
