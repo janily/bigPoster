@@ -4,6 +4,10 @@
 /node_modules
 /.pnp
 .pnp.js
+index_post.js
+/output
+
+
 
 # testing
 /coverage

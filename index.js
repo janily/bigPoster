@@ -16,8 +16,9 @@ async function generateImage(text) {
   const width = 800;
   const height = 800;
   const fontSize = 60;
+  const authorFontSize = 30;
   const lineHeight = fontSize * 1.2;
-  const textColor = 'rgb(29,119,56)'; // Green color
+  const textColor = 'rgb(29,119,56)'; // 绿色
   const backgroundColor = 'white';
   const textToSVG = TextToSVG.loadSync('fonts/huiwen.ttf');
   if (!textToSVG) {
@@ -45,23 +46,45 @@ async function generateImage(text) {
     return lines;
   }
 
+  let mainText = text;
+  let authorName = '';
+  const authorIndex = text.lastIndexOf('作者');
+  if (authorIndex !== -1) {
+    mainText = text.slice(0, authorIndex).trim();
+    authorName = text.slice(authorIndex + 2).trim(); // 提取作者名
+  }
+
   const maxWidth = width * 0.8; // 使用80%的宽度作为文本区域
-  const wrappedText = wrapText(text, maxWidth);
+  const wrappedText = wrapText(mainText, maxWidth);
 
   let svgPaths = '';
-  let yOffset = -(wrappedText.length - 1) * lineHeight / 2; // 居中整个文本块
+  const totalTextHeight = wrappedText.length * lineHeight;
+  let yOffset = -totalTextHeight / 2 + lineHeight / 2; // 整体文本块的垂直居中位置
 
   wrappedText.forEach((line, index) => {
     const options = {
-      x: 0,
+      x: -maxWidth / 2, // 左对齐
       y: yOffset + index * lineHeight,
       fontSize: fontSize,
-      anchor: 'center middle',
+      anchor: 'left top', // 改为左上角对齐
       attributes: { fill: textColor }
     };
     const linePath = textToSVG.getD(line, options);
     svgPaths += `<path d="${linePath}" />`;
   });
+
+  // 添加作者名到右下角（如果存在）
+  let authorPath = '';
+  if (authorName) {
+    const authorOptions = {
+      x: width - 100,  // 距离右边缘40像素
+      y: height - 100, // 距离底边40像素
+      fontSize: authorFontSize,
+      anchor: 'right bottom',
+      attributes: { fill: textColor }
+    };
+    authorPath = textToSVG.getD(authorName, authorOptions);
+  }
 
   const fullSvg = `
   <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -69,6 +92,7 @@ async function generateImage(text) {
     <g transform="translate(${width / 2}, ${height / 2})" fill="${textColor}">
       ${svgPaths}
     </g>
+    ${authorName ? `<path d="${authorPath}" fill="${textColor}" />` : ''}
   </svg>
 `;
 
@@ -78,6 +102,7 @@ async function generateImage(text) {
       .png()
       .withMetadata()
       .toBuffer();
+    console.log('Sharp处理完成，生成的图片大小:', image.length, '字节');
     const metadata = await sharp(image).metadata();
     console.log('图片元数据:', metadata);
     return image;
