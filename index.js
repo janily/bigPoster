@@ -101,7 +101,7 @@ async function generateImage(text) {
   const fullSvg = `
   <svg width="${width}" height="${requiredHeight}" viewBox="0 0 ${width} ${requiredHeight}" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="${backgroundColor}"/>
-    <g transform="translate(${width / 2}, ${(requiredHeight - 100) / 2})" fill="${textColor}">
+    <g transform="translate(${width / 2}, ${(authorName ? (requiredHeight - 100) : (requiredHeight - 50)) / 2})" fill="${textColor}">
       ${svgPaths}
     </g>
     ${authorName ? `<path d="${authorPath}" fill="${textColor}" />` : ''}
