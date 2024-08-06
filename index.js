@@ -14,12 +14,13 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 async function generateImage(text) {
   const width = 800;
-  const height = 800;
+  const minHeight = 800; // 最小高度
   const fontSize = 60;
   const authorFontSize = 30;
   const lineHeight = fontSize * 1.2;
   const textColor = 'rgb(29,119,56)'; // 绿色
   const backgroundColor = 'white';
+  const padding = 100;
   const textToSVG = TextToSVG.loadSync('fonts/huiwen.ttf');
   if (!textToSVG) {
     console.error('TextToSVG加载失败');
@@ -57,16 +58,27 @@ async function generateImage(text) {
   const maxWidth = width * 0.8; // 使用80%的宽度作为文本区域
   const wrappedText = wrapText(mainText, maxWidth);
 
+  // 计算文本块的实际宽度和高度
+  let textBlockWidth = 0;
+  const textBlockHeight = wrappedText.length * lineHeight;
+  wrappedText.forEach(line => {
+    const metrics = textToSVG.getMetrics(line, { fontSize });
+    textBlockWidth = Math.max(textBlockWidth, metrics.width);
+  });
+
+  // 计算所需的画布高度
+  const requiredHeight = Math.max(minHeight, textBlockHeight + padding * 2 + (authorName ? authorFontSize + 20 : 0));
+
   let svgPaths = '';
-  const totalTextHeight = wrappedText.length * lineHeight;
-  let yOffset = -totalTextHeight / 2 + lineHeight / 2; // 整体文本块的垂直居中位置
+  const xOffset = -textBlockWidth / 2; // 水平居中
+  const yOffset = -textBlockHeight / 2 + fontSize / 2; // 垂直居中，考虑到字体基线
 
   wrappedText.forEach((line, index) => {
     const options = {
-      x: -maxWidth / 2, // 左对齐
+      x: xOffset,
       y: yOffset + index * lineHeight,
       fontSize: fontSize,
-      anchor: 'left top', // 改为左上角对齐
+      anchor: 'left top',
       attributes: { fill: textColor }
     };
     const linePath = textToSVG.getD(line, options);
@@ -78,7 +90,7 @@ async function generateImage(text) {
   if (authorName) {
     const authorOptions = {
       x: width - 100,  // 距离右边缘40像素
-      y: height - 100, // 距离底边40像素
+      y: requiredHeight - 40, // 距离底边40像素
       fontSize: authorFontSize,
       anchor: 'right bottom',
       attributes: { fill: textColor }
@@ -87,9 +99,9 @@ async function generateImage(text) {
   }
 
   const fullSvg = `
-  <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+  <svg width="${width}" height="${requiredHeight}" viewBox="0 0 ${width} ${requiredHeight}" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="${backgroundColor}"/>
-    <g transform="translate(${width / 2}, ${height / 2})" fill="${textColor}">
+    <g transform="translate(${width / 2}, ${(requiredHeight - 100) / 2})" fill="${textColor}">
       ${svgPaths}
     </g>
     ${authorName ? `<path d="${authorPath}" fill="${textColor}" />` : ''}
@@ -102,7 +114,6 @@ async function generateImage(text) {
       .png()
       .withMetadata()
       .toBuffer();
-    console.log('Sharp处理完成，生成的图片大小:', image.length, '字节');
     const metadata = await sharp(image).metadata();
     console.log('图片元数据:', metadata);
     return image;
